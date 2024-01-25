@@ -14,7 +14,7 @@ from walk import recursive_walk
 
 load_dotenv()
 logger = logging.getLogger()
-engine = create_engine("sqlite:///objects.db", echo=True,
+engine = create_engine("sqlite:///data/objects.db", echo=True,
                        connect_args={"check_same_thread": False})
 
 app = FastAPI(title="Object Detection")
@@ -90,6 +90,6 @@ async def detect(request: Request, session: Session = Depends(get_session)):
                     # "data": frame[1:100],
                 }
                 break
-            
+
 
     return EventSourceResponse(event_generator())
