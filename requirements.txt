@@ -1,8 +1,7 @@
 asyncio
 fastapi
-numpy
-opencv-python
 pillow
+python-dotenv
 sqlmodel
 sse-starlette
 uvicorn

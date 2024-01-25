@@ -1,12 +1,22 @@
+import os
 import logging
-
-from fastapi import FastAPI, Request
+from typing import Generator
+from fastapi import Depends, FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from sse_starlette.sse import EventSourceResponse
-import asyncio
+from dotenv import load_dotenv
+from sqlmodel import SQLModel, Session, create_engine, select
+
+from models.file import File
+from video import video_frames
+from walk import recursive_walk
 
 
+load_dotenv()
 logger = logging.getLogger()
+engine = create_engine("sqlite:///objects.db", echo=True,
+                       connect_args={"check_same_thread": False})
+
 app = FastAPI(title="Object Detection")
 app.add_middleware(
     CORSMiddleware,
@@ -16,50 +26,70 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-MESSAGE_STREAM_DELAY = 1  # second
-MESSAGE_STREAM_RETRY_TIMEOUT = 15000  # milisecond
 
-@app.get("/")
-def hello():
-    return {
-        "hello": 1,
-        "world": 2
-    }
-
-COUNTER = 0
+@app.on_event("startup")
+def on_startup():
+    SQLModel.metadata.create_all(engine)
 
 
-def get_message():
-    global COUNTER
-    COUNTER += 1
-    return COUNTER, COUNTER < 21
+def get_session() -> Generator:
+    session = None
+    try:
+        with Session(engine) as session:
+            yield session
+    finally:
+        if session is not None:
+            session.close()
 
 
-@app.get("/stream")
-async def message_stream(request: Request):
+@app.get("/collect")
+async def collect(request: Request, session: Session = Depends(get_session)):
+    directory = "./data"
+
     async def event_generator():
-        while True:
+        for filename in recursive_walk(directory):
             if await request.is_disconnected():
                 logger.debug("Request disconnected")
                 break
 
-            # Checks for new messages and return them to client if any
-            counter, exists = get_message()
-            if exists:
-                yield {
-                    "event": "new_message",
-                    "id": "message_id",
-                    "retry": MESSAGE_STREAM_RETRY_TIMEOUT,
-                    "data": f"Counter value {counter}",
-                }
-            else:
-                yield {
-                    "event": "end_event",
-                    "id": "message_id",
-                    "retry": MESSAGE_STREAM_RETRY_TIMEOUT,
-                    "data": "End of the stream",
-                }
+            file = File(filename=filename, scanned=None)
+            session.add(file)
+            yield {
+                "event": "new_file",
+                "id": file.id,
+                "data": file.filename,
+            }
 
-            await asyncio.sleep(MESSAGE_STREAM_DELAY)
+        session.commit()
+
+    return EventSourceResponse(event_generator())
+
+
+@app.get("/detect")
+async def detect(request: Request, session: Session = Depends(get_session)):
+
+    async def event_generator():
+        statement = select(File).where(File.scanned == None)
+        for file in session.exec(statement).all():
+
+            yield {
+                "event": "file",
+                "id": file.id,
+                "data": file.filename,
+            }
+
+            for count, frame in enumerate(video_frames(file.filename)):
+
+                if await request.is_disconnected():
+                    logger.debug("Request disconnected")
+                    break
+
+                yield {
+                    "event": "frame",
+                    "id": count,
+                    # "data": frame[1:100],
+                }
+                break
+            
 
     return EventSourceResponse(event_generator())
