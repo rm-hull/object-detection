@@ -1,4 +1,5 @@
 import os
+import cv2
 import logging
 from typing import Generator
 from fastapi import Depends, FastAPI, Request
@@ -95,7 +96,12 @@ async def detect(request: Request, session: Session = Depends(get_session)):
                     yield {
                         "event": "frame",
                         "id": count,
-                        "data": objs
+                        "data": inferencer.as_dict_array(objs)
                     }
+
+                    annotated = inferencer.append_objs_to_img(frame, objs)
+
+                    cv2.imwrite(
+                        f"/app/frames/frame_{file.id}_{count}.png", annotated)
 
     return EventSourceResponse(event_generator())

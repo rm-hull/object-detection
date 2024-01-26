@@ -20,6 +20,7 @@ services:
     volumes:
       - .:/app/code:rw
       - ./files:/app/files:r
+      - ./frames:/app/frames:rw
       - sqlite_data:/app/data:rw
     #command: "python3 pycoral/examples/classify_image.py --model pycoral/test_data/mobilenet_v2_1.0_224_inat_bird_quant_edgetpu.tflite --labels pycoral/test_data/inat_bird_labels.txt --input pycoral/test_data/parrot.jpg"
     command: /bin/bash -c "uvicorn main:app --host 0.0.0.0 --port 4000 --reload"
