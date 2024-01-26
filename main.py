@@ -102,6 +102,6 @@ async def detect(request: Request, session: Session = Depends(get_session)):
                     annotated = inferencer.append_objs_to_img(frame, objs)
 
                     cv2.imwrite(
-                        f"/app/frames/frame_{file.id}_{count}.png", annotated)
+                        f"/app/frames/frame_{file.id}_{count}.jpg", annotated)
 
     return EventSourceResponse(event_generator())
