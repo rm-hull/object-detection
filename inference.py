@@ -9,7 +9,7 @@ from pycoral.utils.edgetpu import run_inference
 
 class Inferencer():
 
-    def __init__(self, model: str, labels: str, top_k: int = 3, threshold: float = 0.5):
+    def __init__(self, model: str, labels: str, top_k: int = 3, threshold: float = 0.6):
         self.interpreter = make_interpreter(model)
         self.interpreter.allocate_tensors()
         self.labels = read_label_file(labels)
