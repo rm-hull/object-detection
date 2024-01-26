@@ -9,7 +9,7 @@ from pycoral.utils.edgetpu import run_inference
 
 class Inferencer():
 
-    def __init__(self, model: str, labels: str, top_k: int = 3, threshold: float = 0.1):
+    def __init__(self, model: str, labels: str, top_k: int = 3, threshold: float = 0.5):
         self.interpreter = make_interpreter(model)
         self.interpreter.allocate_tensors()
         self.labels = read_label_file(labels)
@@ -21,8 +21,9 @@ class Inferencer():
         cv2_im_rgb = cv2.cvtColor(cv2_im, cv2.COLOR_BGR2RGB)
         cv2_im_rgb = cv2.resize(cv2_im_rgb, self.inference_size)
         run_inference(self.interpreter, cv2_im_rgb.tobytes())
-        objs = get_objects(self.interpreter, self.threshold)[:self.top_k]
+        return [
+            dict(bbox=obj.bbox, score=obj.score, id=obj.id, label=self.labels.get(obj.id, obj.id))
+            for obj in get_objects(self.interpreter, self.threshold)[:self.top_k]
+        ]
 
         # obj.bbox / obj.score / obj.id
-        for obj in objs:
-            obj['label'] = self.labels.get(obj.id, obj.id)

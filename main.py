@@ -71,7 +71,7 @@ async def detect(request: Request, session: Session = Depends(get_session)):
 
     inferencer = Inferencer(
         model=os.getenv('MODEL_FILE'),
-        labels=os.getenv('LABEL_FILE')
+        labels=os.getenv('LABELS_FILE')
     )
 
     async def event_generator():
@@ -91,12 +91,11 @@ async def detect(request: Request, session: Session = Depends(get_session)):
                     break
 
                 objs = inferencer.detect(frame)
-
-                yield {
-                    "event": "frame",
-                    "id": count,
-                    "objs": objs
-                }
-                break
+                if objs:
+                    yield {
+                        "event": "frame",
+                        "id": count,
+                        "data": objs
+                    }
 
     return EventSourceResponse(event_generator())
