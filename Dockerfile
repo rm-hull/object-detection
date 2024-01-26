@@ -9,10 +9,14 @@ RUN apt-get update && \
     apt-get update && \ 
     apt-get install -y gasket-dkms libedgetpu1-std python3-pycoral
 
+RUN mkdir -p /app/models && \
+    curl -o /app/models/tf2_ssd_mobilenet_v2_coco17_ptq_edgetpu.tflite https://raw.githubusercontent.com/google-coral/test_data/master/tf2_ssd_mobilenet_v2_coco17_ptq_edgetpu.tflite && \
+    curl -o /app/models/coco_labels.txt https://raw.githubusercontent.com/google-coral/test_data/master/coco_labels.txt
+
 RUN git clone https://github.com/google-coral/pycoral.git
 RUN bash pycoral/examples/install_requirements.sh classify_image.py
 
-ENV PYTHONPATH=/app
+ENV PYTHONPATH=/app/code
 ENV PYTHONDONTWRITEBYTECODE=1
 
 COPY requirements.txt .

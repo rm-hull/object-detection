@@ -6,6 +6,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from sse_starlette.sse import EventSourceResponse
 from dotenv import load_dotenv
 from sqlmodel import SQLModel, Session, create_engine, select
+from inference import Inferencer
 
 from models.file import File
 from video import video_frames
@@ -14,7 +15,7 @@ from walk import recursive_walk
 
 load_dotenv()
 logger = logging.getLogger()
-engine = create_engine("sqlite:///data/objects.db", echo=True,
+engine = create_engine("sqlite:////app/data/objects.db", echo=True,
                        connect_args={"check_same_thread": False})
 
 app = FastAPI(title="Object Detection")
@@ -44,7 +45,7 @@ def get_session() -> Generator:
 
 @app.get("/collect")
 async def collect(request: Request, session: Session = Depends(get_session)):
-    directory = "./data"
+    directory = "/app/files"
 
     async def event_generator():
         for filename in recursive_walk(directory):
@@ -68,6 +69,11 @@ async def collect(request: Request, session: Session = Depends(get_session)):
 @app.get("/detect")
 async def detect(request: Request, session: Session = Depends(get_session)):
 
+    inferencer = Inferencer(
+        model=os.getenv('MODEL_FILE'),
+        labels=os.getenv('LABEL_FILE')
+    )
+
     async def event_generator():
         statement = select(File).where(File.scanned == None)
         for file in session.exec(statement).all():
@@ -84,12 +90,13 @@ async def detect(request: Request, session: Session = Depends(get_session)):
                     logger.debug("Request disconnected")
                     break
 
+                objs = inferencer.detect(frame)
+
                 yield {
                     "event": "frame",
                     "id": count,
-                    # "data": frame[1:100],
+                    "objs": objs
                 }
                 break
-
 
     return EventSourceResponse(event_generator())
