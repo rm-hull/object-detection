@@ -1,8 +1,6 @@
 import uuid
 
-from sqlmodel import Field, Relationship, SQLModel
-
-from models.file import File
+from sqlmodel import Field, SQLModel
 
 from .mixins import TimestampMixin
 
@@ -17,6 +15,6 @@ class Object(TimestampMixin, SQLModel, table=True):
         nullable=False,
     )
     frame_id: uuid.UUID = Field(foreign_key="frame.id", nullable=False)
-    frame: File = Relationship(back_populates="object")
+    file_id: uuid.UUID = Field(foreign_key="file.id", nullable=False)
     label: str = Field(nullable=False, index=True)
     score: float = Field(nullable=False)

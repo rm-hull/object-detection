@@ -1,8 +1,6 @@
 import uuid
 
-from sqlmodel import Field, Relationship, SQLModel
-
-from models.file import File
+from sqlmodel import Field, SQLModel
 
 from .mixins import TimestampMixin
 
@@ -17,6 +15,5 @@ class Frame(TimestampMixin, SQLModel, table=True):
         nullable=False,
     )
     file_id: uuid.UUID = Field(foreign_key="file.id", nullable=False)
-    file: File = Relationship(back_populates="frame")
     frame_count: int = Field(nullable=False)
     image: str = Field(nullable=False)

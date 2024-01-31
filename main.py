@@ -1,5 +1,4 @@
 import os
-import cv2
 import logging
 from typing import Generator
 from fastapi import Depends, FastAPI, Request
@@ -8,6 +7,7 @@ from sse_starlette.sse import EventSourceResponse
 from dotenv import load_dotenv
 from sqlmodel import SQLModel, Session, create_engine, select
 from inference import Inferencer
+from datetime import datetime
 
 from models.file import File
 from models.frame import Frame
@@ -109,7 +109,11 @@ async def detect(request: Request, session: Session = Depends(get_session)):
 
                     for obj in detected_objects:
                         label = inferencer.label(obj.id)
-                        object = Object(frame_id=frame.id, label=label, score=obj.score)
+                        object = Object(file=file.id, frame_id=frame.id, label=label, score=obj.score)
                         session.add(object)
+
+                file.scanned = datetime.utcnow()
+                session.add(file)
+                session.commit()
 
     return EventSourceResponse(event_generator())

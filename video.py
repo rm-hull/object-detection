@@ -25,7 +25,7 @@ def video_frames(video_path: str) -> Generator:
         cv2.destroyAllWindows()
 
 
-def to_data_url(image: cv2.typing.MatLike) -> str:
+def to_data_url(image) -> str:
     image_pil = Image.fromarray(cv2.cvtColor(image, cv2.COLOR_BGR2RGB))
     byte_stream = BytesIO()
     image_pil.save(byte_stream, format="JPEG")
