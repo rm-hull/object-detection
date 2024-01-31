@@ -10,7 +10,9 @@ from sqlmodel import SQLModel, Session, create_engine, select
 from inference import Inferencer
 
 from models.file import File
-from video import video_frames
+from models.frame import Frame
+from models.object import Object
+from video import to_data_url, video_frames
 from walk import recursive_walk
 
 
@@ -91,17 +93,23 @@ async def detect(request: Request, session: Session = Depends(get_session)):
                     logger.debug("Request disconnected")
                     break
 
-                objs = inferencer.detect(frame)
-                if objs:
+                detected_objects = inferencer.detect(frame)
+                if detected_objects:
                     yield {
                         "event": "frame",
                         "id": count,
-                        "data": inferencer.as_dict_array(objs)
+                        "data": inferencer.as_dict_array(detected_objects)
                     }
 
-                    annotated = inferencer.append_objs_to_img(frame, objs)
+                    annotated = inferencer.append_objs_to_img(frame, detected_objects)
+                    data_url = to_data_url(annotated)
 
-                    cv2.imwrite(
-                        f"/app/frames/frame_{file.id}_{count}.jpg", annotated)
+                    frame = Frame(file_id=file.id, frame_count=count, image=data_url)
+                    session.add(frame)
+
+                    for obj in detected_objects:
+                        label = inferencer.label(obj.id)
+                        object = Object(frame_id=frame.id, label=label, score=obj.score)
+                        session.add(object)
 
     return EventSourceResponse(event_generator())

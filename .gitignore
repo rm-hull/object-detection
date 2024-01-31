@@ -160,7 +160,7 @@ cython_debug/
 #.idea/
 
 files/
-frames/
+data/
 *.db
 *.mp4
 
