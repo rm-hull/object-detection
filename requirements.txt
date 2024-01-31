@@ -2,6 +2,7 @@ asyncio
 fastapi
 pillow
 python-dotenv
+opencv-python
 sqlmodel
 sse-starlette
 uvicorn
