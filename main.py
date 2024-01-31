@@ -2,7 +2,7 @@ import os
 import cv2
 import logging
 from typing import Generator
-from fastapi import Depends, FastAPI, Request
+from fastapi import Depends, FastAPI, HTTPException, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
 from sse_starlette.sse import EventSourceResponse
 from dotenv import load_dotenv
@@ -130,3 +130,10 @@ async def detect(request: Request, session: Session = Depends(get_session)):
                 session.commit()
 
     return EventSourceResponse(event_generator())
+
+@app.get("/frame/{frame_id}", response_class=Response)
+async def frame(frame_id: str, session: Session = Depends(get_session)):
+    frame = session.get(Frame, frame_id)
+    if not frame:
+        raise HTTPException(status_code=404, detail="Frame not found")
+    return Response(content=frame.image, media_type="image/jpeg")
