@@ -21,7 +21,7 @@ load_dotenv()
 logger = logging.getLogger()
 engine = create_engine(
     "sqlite:////app/data/objects.db",
-    echo=True,
+    echo=False,
     connect_args={"check_same_thread": False},
 )
 
