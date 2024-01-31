@@ -1,4 +1,5 @@
 import os
+import cv2
 import logging
 from typing import Generator
 from fastapi import Depends, FastAPI, Request
@@ -18,8 +19,11 @@ from walk import recursive_walk
 
 load_dotenv()
 logger = logging.getLogger()
-engine = create_engine("sqlite:////app/data/objects.db", echo=True,
-                       connect_args={"check_same_thread": False})
+engine = create_engine(
+    "sqlite:////app/data/objects.db",
+    echo=True,
+    connect_args={"check_same_thread": False},
+)
 
 app = FastAPI(title="Object Detection")
 app.add_middleware(
@@ -71,16 +75,13 @@ async def collect(request: Request, session: Session = Depends(get_session)):
 
 @app.get("/detect")
 async def detect(request: Request, session: Session = Depends(get_session)):
-
     inferencer = Inferencer(
-        model=os.getenv('MODEL_FILE'),
-        labels=os.getenv('LABELS_FILE')
+        model=os.getenv("MODEL_FILE"), labels=os.getenv("LABELS_FILE")
     )
 
     async def event_generator():
         statement = select(File).where(File.scanned == None)
         for file in session.exec(statement).all():
-
             yield {
                 "event": "file",
                 "id": file.id,
@@ -88,7 +89,6 @@ async def detect(request: Request, session: Session = Depends(get_session)):
             }
 
             for count, frame in enumerate(video_frames(file.filename)):
-
                 if await request.is_disconnected():
                     logger.debug("Request disconnected")
                     break
@@ -98,18 +98,31 @@ async def detect(request: Request, session: Session = Depends(get_session)):
                     yield {
                         "event": "frame",
                         "id": count,
-                        "data": inferencer.as_dict_array(detected_objects)
+                        "data": inferencer.as_dict_array(detected_objects),
                     }
 
                     annotated = inferencer.append_objs_to_img(frame, detected_objects)
-                    data_url = to_data_url(annotated)
 
-                    frame = Frame(file_id=file.id, frame_count=count, image=data_url)
+                    retval, jpeg_bytes = cv2.imencode(".jpg", annotated)
+                    if retval:
+                        frame = Frame(
+                            file_id=file.id,
+                            frame_count=count,
+                            image=jpeg_bytes.tobytes(),
+                        )
+                    else:
+                        frame = Frame(file_id=file.id, frame_count=count, image=None)
+
                     session.add(frame)
 
                     for obj in detected_objects:
                         label = inferencer.label(obj.id)
-                        object = Object(file=file.id, frame_id=frame.id, label=label, score=obj.score)
+                        object = Object(
+                            file=file.id,
+                            frame_id=frame.id,
+                            label=label,
+                            score=obj.score,
+                        )
                         session.add(object)
 
                 file.scanned = datetime.utcnow()

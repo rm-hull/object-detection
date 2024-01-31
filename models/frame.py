@@ -1,3 +1,4 @@
+from typing import Optional
 import uuid
 
 from sqlmodel import Field, SQLModel
@@ -16,4 +17,4 @@ class Frame(TimestampMixin, SQLModel, table=True):
     )
     file_id: uuid.UUID = Field(foreign_key="file.id", nullable=False)
     frame_count: int = Field(nullable=False)
-    image: str = Field(nullable=False)
+    image: Optional[bytes] = Field(default=None)
