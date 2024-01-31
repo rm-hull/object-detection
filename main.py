@@ -13,7 +13,7 @@ from datetime import datetime
 from models.file import File
 from models.frame import Frame
 from models.object import Object
-from video import to_data_url, video_frames
+from video import video_frames
 from walk import recursive_walk
 
 
@@ -118,7 +118,7 @@ async def detect(request: Request, session: Session = Depends(get_session)):
                     for obj in detected_objects:
                         label = inferencer.label(obj.id)
                         object = Object(
-                            file=file.id,
+                            file_id=file.id,
                             frame_id=frame.id,
                             label=label,
                             score=obj.score,
