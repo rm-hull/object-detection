@@ -78,7 +78,7 @@ class Inferencer:
                 fontFace=font,
                 fontScale=font_scale,
                 color=font_color,
-                font_thickness=font_thickness,
+                thickness=font_thickness,
             )
         return cv2_im
 
