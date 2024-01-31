@@ -98,12 +98,6 @@ async def detect(request: Request, session: Session = Depends(get_session)):
 
                 detected_objects = inferencer.detect(frame)
                 if detected_objects:
-                    yield {
-                        "event": "frame",
-                        "id": count,
-                        "data": inferencer.as_dict_array(detected_objects),
-                    }
-
                     annotated = inferencer.append_objs_to_img(frame, detected_objects)
 
                     retval, jpeg_bytes = cv2.imencode(".jpg", annotated)
@@ -127,6 +121,13 @@ async def detect(request: Request, session: Session = Depends(get_session)):
                             score=obj.score,
                         )
                         session.add(object)
+
+                    yield {
+                        "event": "frame",
+                        "id": frame.id,
+                        "data": inferencer.as_dict_array(detected_objects),
+                    }
+
 
                 file.scanned = datetime.utcnow()
                 session.add(file)
