@@ -89,6 +89,9 @@ async def detect(request: Request, session: Session = Depends(get_session)):
             }
 
             for count, frame in enumerate(video_frames(file.filename)):
+                if count % 10 > 0:
+                    continue
+
                 if await request.is_disconnected():
                     logger.debug("Request disconnected")
                     break
